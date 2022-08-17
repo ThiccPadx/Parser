@@ -1,7 +1,4 @@
-﻿using System;
-using System.Data;
-using System.Net.Http;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +8,7 @@ namespace Parser
 {
     class Program
     {
-        static async Task Main(string[] args)
+        private static async Task Main(string[] args)
         {
             bool isChecked = false;
             while (true)
@@ -21,16 +18,16 @@ namespace Parser
                     var genCaptcha = GenerateCaptcha();
                     var convertImage = Base64ToImage(genCaptcha.Result.imageInBase64);
                     OCRModelConfig config = null;
-                    OCRParameter oCRParameter = new OCRParameter();
-                    OCRResult ocrResult = new OCRResult();
-                    PaddleOCREngine engine = new PaddleOCREngine(config, oCRParameter);
+                    OCRParameter OCRParameter = new OCRParameter();
+                    OCRResult OCRResult = new OCRResult();
+                    PaddleOCREngine engine = new PaddleOCREngine(config, OCRParameter);
                     {
-                        ocrResult = engine.DetectText(convertImage);
+                        OCRResult = engine.DetectText(convertImage);
                     }
-                    CaptchaVerifier token = new CaptchaVerifier();
+                    CaptchaVerifier? token = new CaptchaVerifier();
 
-                    if (ocrResult != null)
-                        token = await VerifyCaptcha(ocrResult.Text, genCaptcha.Result.id);
+                    if (OCRResult != null)
+                        token = await VerifyCaptcha(OCRResult.Text, genCaptcha.Result.id);
 
                     if (token?.token != null)
                     {
@@ -57,7 +54,6 @@ namespace Parser
                 Thread.Sleep(milliseconds);
                 isChecked = false;
             }
-
         }
 
         static void RefrenSolo()
@@ -125,7 +121,7 @@ namespace Parser
             Console.Beep(523, 600);
         }
 
-        public static async Task<CheckBooking> CheckBooking(string token)
+        public static Task<CheckBooking?> CheckBooking(string token)
         {
             var url = "https://api.e-konsulat.gov.pl/api/rezerwacja-wizyt-wizowych/terminy/1351";
 
@@ -154,10 +150,10 @@ namespace Parser
             using var reader = new StreamReader(respStream);
             string data = reader.ReadToEnd();
             var checkBook = JsonSerializer.Deserialize<CheckBooking>(data);
-            return checkBook;
+            return Task.FromResult(checkBook);
         }
         
-        public static async Task<CaptchaVerifier?> VerifyCaptcha(string code, string token)
+        public static Task<CaptchaVerifier?> VerifyCaptcha(string code, string token)
         {
             var url = "https://api.e-konsulat.gov.pl/api/u-captcha/sprawdz";
 
@@ -187,10 +183,10 @@ namespace Parser
             using var reader = new StreamReader(respStream);
             string data = reader.ReadToEnd();
             var verifier = JsonSerializer.Deserialize<CaptchaVerifier>(data);
-            return verifier;
+            return Task.FromResult(verifier);
         }
 
-        public static async Task<CaptchaGenerator> GenerateCaptcha()
+        public static Task<CaptchaGenerator?> GenerateCaptcha()
         {
             var url = "https://api.e-konsulat.gov.pl/api/u-captcha/generuj";
 
@@ -223,7 +219,7 @@ namespace Parser
             var captcha = JsonSerializer.Deserialize<CaptchaGenerator>(data);
             Console.WriteLine(data);
            // data = JsonSerializer.Deserialize<string>(data);
-            return captcha;
+            return Task.FromResult(captcha);
         }
         
         public static Image Base64ToImage(string base64String)
