@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "YKxhCgG8U+4WBM9BZ3SiQjTWMnyDFzNKj3dEdzokBzaQUHYSaW829p/xsZ1nlB8uEltJFZPIVVbuCheY2Jf98w==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\rkuan\\RiderProjects\\Parser\\Parser\\Parser.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\rkuan\\.nuget\\packages\\microsoft.win32.systemevents\\6.0.0\\microsoft.win32.systemevents.6.0.0.nupkg.sha512",
+    "C:\\Users\\rkuan\\.nuget\\packages\\paddleocrsharp\\2.0.3\\paddleocrsharp.2.0.3.nupkg.sha512",
+    "C:\\Users\\rkuan\\.nuget\\packages\\system.drawing.common\\6.0.0\\system.drawing.common.6.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
