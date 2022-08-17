@@ -10,6 +10,10 @@ namespace Parser
     {
         private static async Task Main(string[] args)
         {
+            OCRParameter OCRParameter = new OCRParameter();
+            OCRResult OCRResult = new OCRResult();
+            OCRModelConfig config = null;
+            PaddleOCREngine engine = new PaddleOCREngine(config, OCRParameter);
             bool isChecked = false;
             while (true)
             {
@@ -17,10 +21,6 @@ namespace Parser
                 {
                     var genCaptcha = GenerateCaptcha();
                     var convertImage = Base64ToImage(genCaptcha.Result.imageInBase64);
-                    OCRModelConfig config = null;
-                    OCRParameter OCRParameter = new OCRParameter();
-                    OCRResult OCRResult = new OCRResult();
-                    PaddleOCREngine engine = new PaddleOCREngine(config, OCRParameter);
                     {
                         OCRResult = engine.DetectText(convertImage);
                     }
