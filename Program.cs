@@ -32,7 +32,7 @@ namespace Parser
                     if (token?.token != null)
                     {
                         var checkBook = CheckBooking(token.token);
-                        if (checkBook.Result.DaysTable.Length > 1)
+                        if (checkBook.Result.DaysTable.Length > 0)
                         {
                             
                             Console.WriteLine("Booking is available");
