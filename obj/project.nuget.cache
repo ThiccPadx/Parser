@@ -1,12 +1,16 @@
 {
   "version": 2,
-  "dgSpecHash": "YKxhCgG8U+4WBM9BZ3SiQjTWMnyDFzNKj3dEdzokBzaQUHYSaW829p/xsZ1nlB8uEltJFZPIVVbuCheY2Jf98w==",
+  "dgSpecHash": "6hz+OXDcATzEE0ZeCwNSAfaqQF5Q/QOTSNPeZKogD6+668L4EgE0N+jp0ZRBm1QlqoGO7TRUhADRCxH5pkJijQ==",
   "success": true,
   "projectFilePath": "C:\\Users\\rkuan\\RiderProjects\\Parser\\Parser\\Parser.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\rkuan\\.nuget\\packages\\microsoft.win32.systemevents\\6.0.0\\microsoft.win32.systemevents.6.0.0.nupkg.sha512",
+    "C:\\Users\\rkuan\\.nuget\\packages\\newtonsoft.json\\13.0.1\\newtonsoft.json.13.0.1.nupkg.sha512",
     "C:\\Users\\rkuan\\.nuget\\packages\\paddleocrsharp\\2.0.3\\paddleocrsharp.2.0.3.nupkg.sha512",
-    "C:\\Users\\rkuan\\.nuget\\packages\\system.drawing.common\\6.0.0\\system.drawing.common.6.0.0.nupkg.sha512"
+    "C:\\Users\\rkuan\\.nuget\\packages\\system.drawing.common\\6.0.0\\system.drawing.common.6.0.0.nupkg.sha512",
+    "C:\\Users\\rkuan\\.nuget\\packages\\system.threading.channels\\6.0.0\\system.threading.channels.6.0.0.nupkg.sha512",
+    "C:\\Users\\rkuan\\.nuget\\packages\\telegram.bot\\18.0.0\\telegram.bot.18.0.0.nupkg.sha512",
+    "C:\\Users\\rkuan\\.nuget\\packages\\telegram.bot.extensions.polling\\1.0.2\\telegram.bot.extensions.polling.1.0.2.nupkg.sha512"
   ],
   "logs": []
 }

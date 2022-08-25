@@ -3,21 +3,39 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using PaddleOCRSharp;
+using Telegram.Bot;
+using Telegram.Bot.Extensions.Polling;
+using Telegram.Bot.Types;
 
 namespace Parser
 {
     class Program
     {
+        static ITelegramBotClient bot = new TelegramBotClient("");
+
         private static async Task Main(string[] args)
         {
+            var cts = new CancellationTokenSource();
+            var cancellationToken = cts.Token;
+            var receiverOptions = new ReceiverOptions
+            {
+                AllowedUpdates = { }, // receive all update types
+            };
+            bot.StartReceiving(
+                HandleUpdateAsync,
+                HandleErrorAsync,
+                receiverOptions,
+                cancellationToken
+            );
             OCRParameter OCRParameter = new OCRParameter();
             OCRResult OCRResult = new OCRResult();
             OCRModelConfig config = null;
             PaddleOCREngine engine = new PaddleOCREngine(config, OCRParameter);
-            bool isChecked = false;
+            bool isAstanaChecked = false;
+            bool isAlmatyChecked = false;
             while (true)
             {
-                while (isChecked == false)
+                while (isAstanaChecked == false)
                 {
                     var genCaptcha = GenerateCaptcha();
                     var convertImage = Base64ToImage(genCaptcha.Result.imageInBase64);
@@ -31,98 +49,178 @@ namespace Parser
 
                     if (token?.token != null)
                     {
-                        var checkBook = CheckBooking(token.token);
+                        var checkBook = CheckBookingAstana(token.token);
                         if (checkBook.Result.DaysTable.Length > 0)
                         {
-                            
-                            Console.WriteLine("Booking is available");
-                            RefrenSolo();
+                            WriteToAllUsers("Запись появилась в Астане");
+                            Console.WriteLine("Booking is available in Astana");
+                            //RefrenSolo();
                         }
                         else
                         {
-                            Console.WriteLine("Booking is not available");
+                            
+                            Console.WriteLine("Booking is not available in Astana");
                         }
 
-                        isChecked = true;
+                        isAstanaChecked = true;
                     }
                     else
                     {
                         Console.WriteLine("Error: captcha not verified");
                     }
                 }
+                while (isAlmatyChecked == false)
+                {
+                    var genCaptcha = GenerateCaptcha();
+                    var convertImage = Base64ToImage(genCaptcha.Result.imageInBase64);
+                    {
+                        OCRResult = engine.DetectText(convertImage);
+                    }
+                    CaptchaVerifier? token = new CaptchaVerifier();
+
+                    if (OCRResult != null)
+                        token = await VerifyCaptcha(OCRResult.Text, genCaptcha.Result.id);
+
+                    if (token?.token != null)
+                    {
+                        var checkBook = CheckBookingAlmaty(token.token);
+                        if (checkBook.Result.DaysTable.Length > 0)
+                        {
+                            WriteToAllUsers("Запись появилась в Алмате");
+                            Console.WriteLine("Booking is available in Almaty");
+                        }
+                        else
+                        {
+                            
+                            Console.WriteLine("Booking is not available in Almaty");
+                        }
+
+                        isAlmatyChecked = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: captcha not verified");
+                    }
+                }
+
                 int milliseconds = 300000;
                 Thread.Sleep(milliseconds);
-                isChecked = false;
+                isAstanaChecked = false;
+                isAlmatyChecked = false;
             }
         }
 
-        static void RefrenSolo()
+        public static async void WriteToAllUsers(string message)
         {
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Thread.Sleep(300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Thread.Sleep(300);
-            Console.Beep(659, 300);
-            Console.Beep(783, 300);
-            Console.Beep(523, 300);
-            Console.Beep(587, 300);
-            Console.Beep(659, 300);
-            Console.Beep(261, 300);
-            Console.Beep(293, 300);
-            Console.Beep(329, 300);
-            Console.Beep(698, 300);
-            Console.Beep(698, 300);
-            Console.Beep(698, 300);
-            Thread.Sleep(300);
-            Console.Beep(698, 300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Thread.Sleep(300);
-            Console.Beep(659, 300);
-            Console.Beep(587, 300);
-            Console.Beep(587, 300);
-            Console.Beep(659, 300);
-            Console.Beep(587, 300);
-            Thread.Sleep(300);
-            Console.Beep(783, 300);
-            Thread.Sleep(300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Thread.Sleep(300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Thread.Sleep(300);
-            Console.Beep(659, 300);
-            Console.Beep(783, 300);
-            Console.Beep(523, 300);
-            Console.Beep(587, 300);
-            Console.Beep(659, 300);
-            Console.Beep(261, 300);
-            Console.Beep(293, 300);
-            Console.Beep(329, 300);
-            Console.Beep(698, 300);
-            Console.Beep(698, 300);
-            Console.Beep(698, 300);
-            Thread.Sleep(300);
-            Console.Beep(698, 300);
-            Console.Beep(659, 300);
-            Console.Beep(659, 300);
-            Thread.Sleep(300);
-            Console.Beep(783, 300);
-            Console.Beep(783, 300);
-            Console.Beep(698, 300);
-            Console.Beep(587, 300);
-            Console.Beep(523, 600);
+            var users = await GetUsers();
+            foreach (var user in users)
+            {
+                await bot.SendTextMessageAsync(user, message);
+            }
         }
 
-        public static Task<CheckBooking?> CheckBooking(string token)
+        public static async Task<bool> IsUserExist(string id)
         {
+            using (StreamReader reader = new StreamReader("users.txt"))
+            {
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    if (id == line)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+        
+        public static async void AddUser(string id)
+        {
+            using (StreamWriter writer = new StreamWriter("users.txt", true))
+            {
+                await writer.WriteLineAsync(id);
+            }
+        }
+        
+        public static async Task<List<int>> GetUsers()
+        {
+            List<int> users = new List<int>();
+            using (StreamReader reader = new StreamReader("users.txt"))
+            {
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    users.Add(int.Parse(line));
+                }
+            }
+
+            return users;
+        }
+        
+        public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            // Некоторые действия
+            //Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(update));
+
+            if (!IsUserExist(update.Message.From.Id.ToString()).Result)
+            {
+                AddUser(update.Message.From.Id.ToString());
+            }
+            // Console.WriteLine(update.Message.From.Id);
+
+            if(update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
+            {
+                var message = update.Message;
+                if (message.Text.ToLower() == "/start")
+                {
+                    await botClient.SendTextMessageAsync(message.Chat, "Привет, это бот который проверяет есть ли запись на визу. В случае если появится запись, то напишу в этот чат.");
+                    return;
+                }
+                await botClient.SendTextMessageAsync(message.Chat, "Сам напишу если появится запись");
+            }
+        }
+
+        public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
+        {
+            // Некоторые действия
+            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(exception));
+        }
+
+        public static Task<CheckBooking?> CheckBookingAlmaty(string token)
+        {
+            var url = "https://api.e-konsulat.gov.pl/api/rezerwacja-wizyt-wizowych/terminy/410";
+
+            var request = WebRequest.Create(url);
+            request.Method = "POST";
+
+            var values = new Dictionary<string, string>
+            {
+                { "token", token }
+            };
+
+            var json = JsonSerializer.Serialize(values);
+            byte[] byteArray = Encoding.UTF8.GetBytes(json);
+
+            request.ContentType = "application/json";
+            request.ContentLength = byteArray.Length;
+
+            using var reqStream = request.GetRequestStream();
+            reqStream.Write(byteArray, 0, byteArray.Length);
+
+            using var response = request.GetResponse();
+            //Console.WriteLine(((HttpWebResponse)response).StatusDescription);
+
+            using var respStream = response.GetResponseStream();
+
+            using var reader = new StreamReader(respStream);
+            string data = reader.ReadToEnd();
+            var checkBook = JsonSerializer.Deserialize<CheckBooking>(data);
+            return Task.FromResult(checkBook);
+        }
+        
+        public static Task<CheckBooking?> CheckBookingAstana(string token)
+        {
+            https://api.e-konsulat.gov.pl/api/rezerwacja-wizyt-wizowych/terminy/410
             var url = "https://api.e-konsulat.gov.pl/api/rezerwacja-wizyt-wizowych/terminy/1351";
 
             var request = WebRequest.Create(url);
@@ -143,7 +241,7 @@ namespace Parser
             reqStream.Write(byteArray, 0, byteArray.Length);
 
             using var response = request.GetResponse();
-            Console.WriteLine(((HttpWebResponse)response).StatusDescription);
+            //Console.WriteLine(((HttpWebResponse)response).StatusDescription);
 
             using var respStream = response.GetResponseStream();
 
@@ -176,7 +274,7 @@ namespace Parser
             reqStream.Write(byteArray, 0, byteArray.Length);
 
             using var response = request.GetResponse();
-            Console.WriteLine(((HttpWebResponse)response).StatusDescription);
+            //Console.WriteLine(((HttpWebResponse)response).StatusDescription);
 
             using var respStream = response.GetResponseStream();
 
@@ -210,14 +308,14 @@ namespace Parser
             reqStream.Write(byteArray, 0, byteArray.Length);
 
             using var response = request.GetResponse();
-            Console.WriteLine(((HttpWebResponse)response).StatusDescription);
+            // Console.WriteLine(((HttpWebResponse)response).StatusDescription);
 
             using var respStream = response.GetResponseStream();
 
             using var reader = new StreamReader(respStream);
             string data = reader.ReadToEnd();
             var captcha = JsonSerializer.Deserialize<CaptchaGenerator>(data);
-            Console.WriteLine(data);
+            // Console.WriteLine(data);
            // data = JsonSerializer.Deserialize<string>(data);
             return Task.FromResult(captcha);
         }
