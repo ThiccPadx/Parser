@@ -111,13 +111,17 @@ namespace Parser
 
         public static async void WriteToAllUsers(string message)
         {
-            var users = await GetUsers();
-            foreach (var user in users)
+            try
             {
-                if (user != 1707530374)
+                var users = await GetUsers();
+                foreach (var user in users)
                 {
                     await bot.SendTextMessageAsync(user, message);
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
         }
 
