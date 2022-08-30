@@ -11,7 +11,7 @@ namespace Parser
 {
     class Program
     {
-        static ITelegramBotClient bot = new TelegramBotClient("");
+        static ITelegramBotClient bot = new TelegramBotClient("5731506005:AAFqdkXOBMSyIPLFdhaspgCHdYZPJWG2OSk");
 
         private static async Task Main(string[] args)
         {
@@ -91,7 +91,6 @@ namespace Parser
                         }
                         else
                         {
-                            
                             Console.WriteLine("Booking is not available in Almaty");
                         }
 
@@ -115,11 +114,14 @@ namespace Parser
             var users = await GetUsers();
             foreach (var user in users)
             {
-                await bot.SendTextMessageAsync(user, message);
+                if (user != 1707530374)
+                {
+                    await bot.SendTextMessageAsync(user, message);
+                }
             }
         }
 
-        public static async Task<bool> IsUserExist(string id)
+            public static async Task<bool> IsUserExist(string id)
         {
             using (StreamReader reader = new StreamReader("users.txt"))
             {
@@ -142,15 +144,15 @@ namespace Parser
             }
         }
         
-        public static async Task<List<int>> GetUsers()
+        public static async Task<List<long>> GetUsers()
         {
-            List<int> users = new List<int>();
+            List<long> users = new List<long>();
             using (StreamReader reader = new StreamReader("users.txt"))
             {
                 string? line;
                 while ((line = await reader.ReadLineAsync()) != null)
                 {
-                    users.Add(int.Parse(line));
+                    users.Add(long.Parse(line));
                 }
             }
 
@@ -166,7 +168,7 @@ namespace Parser
             {
                 AddUser(update.Message.From.Id.ToString());
             }
-            // Console.WriteLine(update.Message.From.Id);
+            Console.WriteLine(update.Message.From.Id);
 
             if(update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
             {
@@ -220,7 +222,6 @@ namespace Parser
         
         public static Task<CheckBooking?> CheckBookingAstana(string token)
         {
-            https://api.e-konsulat.gov.pl/api/rezerwacja-wizyt-wizowych/terminy/410
             var url = "https://api.e-konsulat.gov.pl/api/rezerwacja-wizyt-wizowych/terminy/1351";
 
             var request = WebRequest.Create(url);
