@@ -11,7 +11,7 @@ namespace Parser
 {
     class Program
     {
-        static ITelegramBotClient bot = new TelegramBotClient("5731506005:AAFqdkXOBMSyIPLFdhaspgCHdYZPJWG2OSk");
+        static ITelegramBotClient bot = new TelegramBotClient("5731506005:AAF3L00uDwHh84VHq7OVWlJGUfUcF9yYKWU");
 
         private static async Task Main(string[] args)
         {
@@ -163,22 +163,31 @@ namespace Parser
         {
             // Некоторые действия
             //Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(update));
-
-            if (!IsUserExist(update.Message.From.Id.ToString()).Result)
+            try
             {
-                AddUser(update.Message.From.Id.ToString());
-            }
-            Console.WriteLine(update.Message.From.Id);
-
-            if(update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
-            {
-                var message = update.Message;
-                if (message.Text.ToLower() == "/start")
+                if (!IsUserExist(update.Message.From.Id.ToString()).Result)
                 {
-                    await botClient.SendTextMessageAsync(message.Chat, "Привет, это бот который проверяет есть ли запись на визу. В случае если появится запись, то напишу в этот чат.");
-                    return;
+                    AddUser(update.Message.From.Id.ToString());
                 }
-                await botClient.SendTextMessageAsync(message.Chat, "Сам напишу если появится запись");
+
+                Console.WriteLine(update.Message.From.Id);
+
+                if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
+                {
+                    var message = update.Message;
+                    if (message.Text.ToLower() == "/start")
+                    {
+                        await botClient.SendTextMessageAsync(message.Chat,
+                            "Привет, это бот который проверяет есть ли запись на визу. В случае если появится запись, то напишу в этот чат.");
+                        return;
+                    }
+
+                    await botClient.SendTextMessageAsync(message.Chat, "Сам напишу если появится запись");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
 
