@@ -6,12 +6,13 @@ using PaddleOCRSharp;
 using Telegram.Bot;
 using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types;
+using File = System.IO.File;
 
 namespace Parser
 {
     class Program
     {
-        static ITelegramBotClient bot = new TelegramBotClient("5731506005:AAF3L00uDwHh84VHq7OVWlJGUfUcF9yYKWU");
+        static ITelegramBotClient bot = new TelegramBotClient("");
 
         private static async Task Main(string[] args)
         {
@@ -58,7 +59,7 @@ namespace Parser
                         }
                         else
                         {
-                            
+
                             Console.WriteLine("Booking is not available in Astana");
                         }
 
@@ -69,6 +70,7 @@ namespace Parser
                         Console.WriteLine("Error: captcha not verified");
                     }
                 }
+
                 while (isAlmatyChecked == false)
                 {
                     var genCaptcha = GenerateCaptcha();
@@ -111,21 +113,35 @@ namespace Parser
 
         public static async void WriteToAllUsers(string message)
         {
-            try
+            var users = await GetUsers();
+            foreach (var user in users)
             {
-                var users = await GetUsers();
-                foreach (var user in users)
+                try
                 {
                     await bot.SendTextMessageAsync(user, message);
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    await DeleteUserFromTxt(user);
+                }
             }
         }
+        
+        public static async Task<bool> DeleteUserFromTxt(long user)
+        {
+            var users = await GetUsers();
+            var newUsers = users.Where(x => x != user).ToList();
+            File.WriteAllText("users.txt", string.Empty);
+            foreach (var newUser in newUsers)
+            {
+                await File.AppendAllTextAsync("users.txt", newUser + Environment.NewLine);
+            }
 
-            public static async Task<bool> IsUserExist(string id)
+            return true;
+        }
+
+        public static async Task<bool> IsUserExist(string id)
         {
             using (StreamReader reader = new StreamReader("users.txt"))
             {
@@ -139,15 +155,12 @@ namespace Parser
 
             return false;
         }
-        
+
         public static async void AddUser(string id)
         {
-            using (StreamWriter writer = new StreamWriter("users.txt", true))
-            {
-                await writer.WriteLineAsync(id);
-            }
+            return;
         }
-        
+
         public static async Task<List<long>> GetUsers()
         {
             List<long> users = new List<long>();
@@ -162,8 +175,9 @@ namespace Parser
 
             return users;
         }
-        
-        public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+
+        public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
+            CancellationToken cancellationToken)
         {
             // Некоторые действия
             //Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(update));
@@ -195,7 +209,8 @@ namespace Parser
             }
         }
 
-        public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
+        public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception,
+            CancellationToken cancellationToken)
         {
             // Некоторые действия
             Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(exception));
@@ -210,7 +225,7 @@ namespace Parser
 
             var values = new Dictionary<string, string>
             {
-                { "token", token }
+                {"token", token}
             };
 
             var json = JsonSerializer.Serialize(values);
@@ -232,7 +247,7 @@ namespace Parser
             var checkBook = JsonSerializer.Deserialize<CheckBooking>(data);
             return Task.FromResult(checkBook);
         }
-        
+
         public static Task<CheckBooking?> CheckBookingAstana(string token)
         {
             var url = "https://api.e-konsulat.gov.pl/api/rezerwacja-wizyt-wizowych/terminy/1351";
@@ -242,7 +257,7 @@ namespace Parser
 
             var values = new Dictionary<string, string>
             {
-                { "token", token }
+                {"token", token}
             };
 
             var json = JsonSerializer.Serialize(values);
@@ -264,7 +279,7 @@ namespace Parser
             var checkBook = JsonSerializer.Deserialize<CheckBooking>(data);
             return Task.FromResult(checkBook);
         }
-        
+
         public static Task<CaptchaVerifier?> VerifyCaptcha(string code, string token)
         {
             var url = "https://api.e-konsulat.gov.pl/api/u-captcha/sprawdz";
@@ -274,8 +289,8 @@ namespace Parser
 
             var values = new Dictionary<string, string>
             {
-                { "kod", code },
-                { "token", token }
+                {"kod", code},
+                {"token", token}
             };
 
             var json = JsonSerializer.Serialize(values);
@@ -307,8 +322,8 @@ namespace Parser
 
             var values = new Dictionary<string, string>
             {
-                { "imageWidth", "100" },
-                { "imageHeight", "50" }
+                {"imageWidth", "100"},
+                {"imageHeight", "50"}
             };
 
             var content = new FormUrlEncodedContent(values);
@@ -330,10 +345,10 @@ namespace Parser
             string data = reader.ReadToEnd();
             var captcha = JsonSerializer.Deserialize<CaptchaGenerator>(data);
             // Console.WriteLine(data);
-           // data = JsonSerializer.Deserialize<string>(data);
+            // data = JsonSerializer.Deserialize<string>(data);
             return Task.FromResult(captcha);
         }
-        
+
         public static Image Base64ToImage(string base64String)
         {
             // Convert base 64 string to byte[]
