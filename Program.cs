@@ -6,13 +6,14 @@ using PaddleOCRSharp;
 using Telegram.Bot;
 using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 using File = System.IO.File;
 
 namespace Parser
 {
     class Program
     {
-        static ITelegramBotClient bot = new TelegramBotClient("5731506005:AAFtaa1BzbLG2M_AuQqEWWFBTOnL8X2WG-g");
+        static ITelegramBotClient bot = new TelegramBotClient("");
 
         private static async Task Main(string[] args)
         {
@@ -53,12 +54,12 @@ namespace Parser
 
                     if (token?.token != null)
                     {
-                        var checkBook = CheckBookingAstana(token.token);
+                        var checkBook = CheckBooking(token.token, "Astana");
                         if (checkBook.Result is { DaysTable.Length: > 0 })
                         {
                             //parse array of strings to string
                             var days = string.Join(", ", checkBook.Result.DaysTable);
-                            await WriteToAllUsersAstana("Запись есть в Астане на " + days);
+                            await WriteToAllUsers("Запись есть в Астане на " + days, "Astana");
                             Console.WriteLine("Booking is available in Astana on " + days);
                         }
                         else
@@ -89,11 +90,11 @@ namespace Parser
 
                     if (token?.token != null)
                     {
-                        var checkBook = CheckBookingAlmaty(token.token);
+                        var checkBook = CheckBooking(token.token, "Almaty");
                         if (checkBook.Result.DaysTable.Length > 0)
                         {
                             var days = string.Join(", ", checkBook.Result.DaysTable);
-                            await WriteToAllUsers("Запись есть в Алмате на " + days);
+                            await WriteToAllUsers("Запись есть в Алмате на " + days, "Almaty");
                             Console.WriteLine("Booking is available in Almaty on " + days);
                         }
                         else
@@ -109,7 +110,7 @@ namespace Parser
                     }
                 }
 
-                int milliseconds = 1800000;
+                int milliseconds = 420000;
                 Thread.Sleep(milliseconds);
                 isAstanaChecked = false;
                 isAlmatyChecked = false;
@@ -128,19 +129,19 @@ namespace Parser
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
-                    await DeleteUserFromTxt(user);
+                    await DeleteUserFromTxt(user, city);
                 }
             }
         }
         
-        public static async Task<bool> DeleteUserFromTxt(long user)
+        public static async Task<bool> DeleteUserFromTxt(long user, string city)
         {
-            var users = await GetUsers();
+            var users = await GetUsers(city);
             var newUsers = users.Where(x => x != user).ToList();
-            File.WriteAllText("users.txt", string.Empty);
+            File.WriteAllText("users" + city + ".txt", string.Empty);
             foreach (var newUser in newUsers)
             {
-                await File.AppendAllTextAsync("users.txt", newUser + Environment.NewLine);
+                await File.AppendAllTextAsync("users" + city + ".txt", newUser + Environment.NewLine);
             }
 
             return true;
@@ -148,9 +149,15 @@ namespace Parser
 
         public static async Task<bool> IsUserExist(string id)
         {
-            using StreamReader reader = new StreamReader("users.txt");
-            string? line;
-            while ((line = await reader.ReadLineAsync()) != null)
+            using StreamReader reader = new StreamReader("usersAstana.txt");
+            while (await reader.ReadLineAsync() is { } line)
+            {
+                if (id == line)
+                    return true;
+            }
+            
+            using StreamReader reader2 = new StreamReader("usersAlmaty.txt");
+            while (await reader2.ReadLineAsync() is { } line)
             {
                 if (id == line)
                     return true;
@@ -159,9 +166,9 @@ namespace Parser
             return false;
         }
 
-        public static async void AddUser(string id)
+        public static async Task AddUser(long id, string city)
         {
-            await File.AppendAllTextAsync("users.txt", id + Environment.NewLine);
+            await File.AppendAllTextAsync("users" + city + ".txt", id + Environment.NewLine);
         }
 
         public static async Task<List<long>> GetUsers(string city)
@@ -181,10 +188,29 @@ namespace Parser
         {
             try
             {
-                if (!IsUserExist(update.Message.From.Id.ToString()).Result)
+                if (update.CallbackQuery != null)
                 {
-                    AddUser(update.Message.From.Id.ToString());
+                    var callback = update.CallbackQuery;
+                    if (callback.Data == "Astana")
+                    {
+                        await botClient.SendTextMessageAsync(callback.From.Id,
+                            "Вы выбрали Астану");
+                        await AddUser(callback.From.Id, "Astana");
+                        await DeleteUserFromTxt(callback.From.Id, "Almaty");
+                    }
+                    else if (callback.Data == "Almaty")
+                    {
+                        await botClient.SendTextMessageAsync(callback.From.Id,
+                            "Вы выбрали Алматы");
+                        await AddUser(callback.From.Id, "Almaty");
+                        await DeleteUserFromTxt(callback.From.Id, "Astana");
+                    }
+
+                    return;
                 }
+
+                //get callback data
+                
 
                 Console.WriteLine(update.Message.From.Id);
 
@@ -196,6 +222,15 @@ namespace Parser
                     {
                         await botClient.SendTextMessageAsync(message.Chat,
                             "Привет, это бот который проверяет есть ли запись на визу. В случае если появится запись, то напишу в этот чат.");
+                        await botClient.SendTextMessageAsync(message.Chat,
+                            "Выберите город", replyMarkup: new InlineKeyboardMarkup(new[]
+                            {
+                                new[]
+                                {
+                                    InlineKeyboardButton.WithCallbackData("Астана", "Astana"),
+                                    InlineKeyboardButton.WithCallbackData("Алматы", "Almaty")
+                                }
+                            }));
                         return;
                     }
 
@@ -276,7 +311,6 @@ namespace Parser
             reqStream.Write(byteArray, 0, byteArray.Length);
 
             using var response = request.GetResponse();
-            //Console.WriteLine(((HttpWebResponse)response).StatusDescription);
 
             using var respStream = response.GetResponseStream();
 
@@ -299,7 +333,6 @@ namespace Parser
                 {"imageHeight", "50"}
             };
 
-            var content = new FormUrlEncodedContent(values);
             var json = JsonSerializer.Serialize(values);
             byte[] byteArray = Encoding.UTF8.GetBytes(json);
 
